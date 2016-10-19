@@ -28,6 +28,7 @@
 Used for sending control setpoints to the Crazyflie
 """
 import struct
+import socket
 
 from cflib.crtp.crtpstack import CRTPPacket
 from cflib.crtp.crtpstack import CRTPPort
@@ -35,6 +36,10 @@ from cflib.crtp.crtpstack import CRTPPort
 __author__ = 'Bitcraze AB'
 __all__ = ['Commander']
 
+SOUND_IP = "127.0.0.1"
+SOUND_PORT = 12345
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 class Commander():
     """
@@ -72,4 +77,13 @@ class Commander():
         pk = CRTPPacket()
         pk.port = CRTPPort.COMMANDER
         pk.data = struct.pack('<fffH', roll, -pitch, yaw, thrust)
+        self._cf.send_packet(pk)
+    def send_shoot(self, notused):
+        if notused == 0:
+            return
+        sock.sendto(struct.pack("<LBB", 1, 2, 1), (SOUND_IP, SOUND_PORT))
+        print("Sending Shoot!")
+        pk = CRTPPacket()
+        pk.port = CRTPPort.SHOOT
+        pk.data = struct.pack('<fffH', 1, 2, 3, 4)#"test"#struct.pack()
         self._cf.send_packet(pk)

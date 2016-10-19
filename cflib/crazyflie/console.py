@@ -24,6 +24,9 @@
 #  along with this program; if not, write to the Free Software
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
 #  MA  02110-1301, USA.
+
+import socket;
+
 """
 Crazyflie console is used to receive characters printed using printf
 from the firmware.
@@ -31,9 +34,18 @@ from the firmware.
 from cflib.crtp.crtpstack import CRTPPort
 from cflib.utils.callbacks import Caller
 
+import struct
+import socket
+
 __author__ = 'Bitcraze AB'
 __all__ = ['Console']
 
+SOUND_IP = "127.0.0.1"
+SOUND_PORT = 12345
+
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+soundIncrement = 0
 
 class Console:
     """
@@ -49,7 +61,21 @@ class Console:
         """
         self.cf = crazyflie
         self.cf.add_port_callback(CRTPPort.CONSOLE, self.incoming)
-
+        self.cf.add_port_callback(7, self.statusIncoming)
+    def statusIncoming(self, packet):
+        global soundIncrement
+        print("got sound")
+        sound = 0
+        if packet.data[0] == 100:
+            sound = 3
+        elif packet.data[0] == 114:
+            sound = 4
+        if sound > 0:
+            soundIncrement = soundIncrement+1
+            sock.sendto(struct.pack("<LBB", soundIncrement, 3, sound), (SOUND_IP, SOUND_PORT))
+            print("Got some status packet with valid sound")
+        else:
+            print("Got some status with invalid sound:" + str(packet.data[0]))
     def incoming(self, packet):
         """
         Callback for data received from the copter.
